@@ -14,7 +14,7 @@ Play in a browser, on iOS Safari, Android Chrome, and desktop.
 | Route | Genre | Tech |
 |-------|-------|------|
 | `/match3` | Match 3 | Phaser / HTML5 Canvas |
-| `/block-puzzle` | Block placement | Phaser / HTML5 Canvas (drag & drop) |
+| `/block-puzzle` | Block placement (1010!-style, place anywhere, clear a full row or column) | Phaser / HTML5 Canvas (drag & drop) |
 | `/color-sort` | Color sort | React DOM |
 | `/trivia` | Trivia | React DOM (timed) |
 | `/word` | Word | React DOM (Wordle-style, on-screen keyboard) |
@@ -52,8 +52,9 @@ and persists its own state to localStorage so players can resume.
   snappy but readable feel.
 - Match-3 invalid swaps animate forward then bounce back, so a rejected move
   *feels* rejected instead of silently doing nothing.
-- Block-drop pieces pop in with a slight overshoot; a drag shows a ghost of the
-  target cells only when the piece actually fits.
+- Block Fit pieces pop in with a slight overshoot; a drag shows a ghost of the
+  target cells only when the piece actually fits (no gravity - it is a
+  place-anywhere puzzle, not a falling-block game).
 - Dead boards (no possible move) auto-reshuffle.
 
 ## Run
