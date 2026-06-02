@@ -6,6 +6,11 @@ pattern needed to drop open-source web games into an existing React/Next.js repo
 
 Play in a browser, on iOS Safari, Android Chrome, and desktop.
 
+**Live demo: https://nextjs-phaser-arcade.vercel.app**
+
+Swipe or tap-then-tap adjacent gems to swap. Match 3+. Score and moves show
+in the HUD; state auto-saves to localStorage so a reload resumes the game.
+
 ## What this demonstrates
 
 - **Client-only mount, SSR off**: the game is loaded with
