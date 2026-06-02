@@ -25,7 +25,7 @@ export type ArcadeGame = {
 export const GAMES: ArcadeGame[] = [
   { slug: "match3", title: "Gem Match", tagline: "Match 3", emoji: "💎", kind: "phaser" },
   { slug: "color-sort", title: "Color Sort", tagline: "Color sort", emoji: "🧪", kind: "react" },
-  { slug: "block-puzzle", title: "Block Drop", tagline: "Block placement", emoji: "🧱", kind: "phaser" },
+  { slug: "block-puzzle", title: "Block Fit", tagline: "Block placement", emoji: "🧱", kind: "phaser" },
   { slug: "trivia", title: "Quick Trivia", tagline: "Trivia", emoji: "❓", kind: "react" },
   { slug: "word", title: "Word Hunt", tagline: "Word", emoji: "🔤", kind: "react" },
 ];

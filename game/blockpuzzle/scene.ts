@@ -15,19 +15,22 @@ import { load, save } from "@/lib/storage";
 import { GameCallbacks } from "@/lib/game";
 
 const SAVE_KEY = "blockpuzzle";
-const PAD = 12;
-const GRID_PX = 360;
-const CELL = GRID_PX / G; // 45
-const ORIGIN_X = (BOARD_SIZE - GRID_PX) / 2;
-const ORIGIN_Y = 12;
-const TRAY_Y = ORIGIN_Y + GRID_PX + 52;
+
+// Geometry: grid in the top area, a dedicated tray band along the bottom.
+const GRID_PX = 336;
+const CELL = GRID_PX / G; // 42
+const ORIGIN_X = (BOARD_SIZE - GRID_PX) / 2; // 72
+const ORIGIN_Y = 8;
+const TRAY_Y = ORIGIN_Y + GRID_PX + 64; // ~408
 const TRAY_X = [BOARD_SIZE * 0.25, BOARD_SIZE * 0.5, BOARD_SIZE * 0.75];
-const TRAY_SCALE = 0.6;
+const TRAY_SCALE = 0.52;
 const BLOCK_COLOR = 0x5db1ff;
 
 type Piece = {
   shape: Cell[];
   color: number;
+  w: number;
+  h: number;
   container: Phaser.GameObjects.Container | null;
   home: { x: number; y: number };
 };
@@ -53,7 +56,7 @@ export class BlockPuzzleScene extends Phaser.Scene {
   }
 
   create() {
-    this.drawGridBackground();
+    this.drawBackground();
     this.ghost = this.add.graphics();
     this.blocks = Array.from({ length: G }, () => Array(G).fill(null));
 
@@ -78,7 +81,7 @@ export class BlockPuzzleScene extends Phaser.Scene {
 
   // --- rendering ---------------------------------------------------------
 
-  private drawGridBackground() {
+  private drawBackground() {
     const g = this.add.graphics();
     for (let r = 0; r < G; r++) {
       for (let c = 0; c < G; c++) {
@@ -92,6 +95,9 @@ export class BlockPuzzleScene extends Phaser.Scene {
         );
       }
     }
+    // tray band backdrop
+    g.fillStyle(0x000000, 0.18);
+    g.fillRoundedRect(8, TRAY_Y - 52, BOARD_SIZE - 16, 104, 14);
   }
 
   private cellCenter(r: number, c: number) {
@@ -139,29 +145,24 @@ export class BlockPuzzleScene extends Phaser.Scene {
     const w = (maxDc + 1) * CELL;
     const h = (maxDr + 1) * CELL;
 
+    // Anchor the bounding box on the container origin (0,0) so the container
+    // position == the piece's visual center. Makes drag + grid math simple.
     const children: Phaser.GameObjects.GameObject[] = shape.map(([dr, dc]) => {
       const g = this.blockGfx(color, CELL - 4);
-      g.setPosition(dc * CELL, dr * CELL);
+      g.setPosition(dc * CELL - (w - CELL) / 2, dr * CELL - (h - CELL) / 2);
       return g;
     });
 
-    // center the bounding box on the tray slot
     const home = { x: TRAY_X[slot], y: TRAY_Y };
-    const container = this.add.container(
-      home.x - (w - CELL) / 2 * TRAY_SCALE,
-      home.y - (h - CELL) / 2 * TRAY_SCALE,
-      children
-    );
+    const container = this.add.container(home.x, home.y, children);
     container.setScale(TRAY_SCALE);
-    container.setData("shape", shape);
     container.setData("slot", slot);
-    container.setData("color", color);
 
-    const rect = new Phaser.Geom.Rectangle(-CELL / 2, -CELL / 2, w, h);
+    const rect = new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h);
     container.setInteractive(rect, Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(container);
 
-    return { shape, color, container, home };
+    return { shape, color, w, h, container, home };
   }
 
   // --- drag --------------------------------------------------------------
@@ -174,11 +175,19 @@ export class BlockPuzzleScene extends Phaser.Scene {
     this.tweens.add({ targets: obj, scale: 1, duration: 100, ease: "Sine.Out" });
   }
 
-  private targetOrigin(obj: Phaser.GameObjects.Container) {
+  // grid coords of the piece's top-left (0,0) cell, at scale 1
+  private targetOrigin(piece: Piece, obj: Phaser.GameObjects.Container) {
+    const x0 = obj.x - (piece.w - CELL) / 2;
+    const y0 = obj.y - (piece.h - CELL) / 2;
     return {
-      r0: Math.round((obj.y - ORIGIN_Y - CELL / 2) / CELL),
-      c0: Math.round((obj.x - ORIGIN_X - CELL / 2) / CELL),
+      r0: Math.round((y0 - ORIGIN_Y - CELL / 2) / CELL),
+      c0: Math.round((x0 - ORIGIN_X - CELL / 2) / CELL),
     };
+  }
+
+  private pieceOf(obj: Phaser.GameObjects.Container): Piece | null {
+    const slot = obj.getData("slot") as number;
+    return this.pieces[slot] ?? null;
   }
 
   private onDrag(
@@ -188,12 +197,13 @@ export class BlockPuzzleScene extends Phaser.Scene {
     dragY: number
   ) {
     obj.setPosition(dragX, dragY);
-    const shape = obj.getData("shape") as Cell[];
-    const { r0, c0 } = this.targetOrigin(obj);
+    const piece = this.pieceOf(obj);
+    if (!piece) return;
+    const { r0, c0 } = this.targetOrigin(piece, obj);
     this.ghost.clear();
-    if (fits(this.grid, shape, r0, c0)) {
+    if (fits(this.grid, piece.shape, r0, c0)) {
       this.ghost.fillStyle(0xffffff, 0.18);
-      for (const [dr, dc] of shape) {
+      for (const [dr, dc] of piece.shape) {
         const { x, y } = this.cellCenter(r0 + dr, c0 + dc);
         this.ghost.fillRoundedRect(x - CELL / 2 + 2, y - CELL / 2 + 2, CELL - 4, CELL - 4, 6);
       }
@@ -205,16 +215,16 @@ export class BlockPuzzleScene extends Phaser.Scene {
     obj: Phaser.GameObjects.Container
   ) {
     this.ghost.clear();
-    const shape = obj.getData("shape") as Cell[];
+    const piece = this.pieceOf(obj);
+    if (!piece) return;
     const slot = obj.getData("slot") as number;
-    const color = obj.getData("color") as number;
-    const { r0, c0 } = this.targetOrigin(obj);
+    const { r0, c0 } = this.targetOrigin(piece, obj);
 
-    if (fits(this.grid, shape, r0, c0)) {
-      place(this.grid, shape, r0, c0);
-      for (const [dr, dc] of shape) {
+    if (fits(this.grid, piece.shape, r0, c0)) {
+      place(this.grid, piece.shape, r0, c0);
+      for (const [dr, dc] of piece.shape) {
         const { x, y } = this.cellCenter(r0 + dr, c0 + dc);
-        const g = this.blockGfx(color, CELL - 4);
+        const g = this.blockGfx(piece.color, CELL - 4);
         g.setPosition(x, y);
         g.setScale(0.2);
         this.tweens.add({ targets: g, scale: 1, duration: 110, ease: "Back.Out" });
@@ -222,26 +232,20 @@ export class BlockPuzzleScene extends Phaser.Scene {
       }
       obj.destroy();
       this.pieces[slot] = null;
-      this.addScore(shape.length);
+      this.addScore(piece.shape.length);
       this.resolveClears();
       this.afterPlace();
       this.persist();
     } else {
-      const piece = this.pieces[slot];
-      if (piece) {
-        const maxDr = Math.max(...shape.map((s) => s[0]));
-        const maxDc = Math.max(...shape.map((s) => s[1]));
-        const w = (maxDc + 1) * CELL;
-        const h = (maxDr + 1) * CELL;
-        this.tweens.add({
-          targets: obj,
-          x: piece.home.x - ((w - CELL) / 2) * TRAY_SCALE,
-          y: piece.home.y - ((h - CELL) / 2) * TRAY_SCALE,
-          scale: TRAY_SCALE,
-          duration: 150,
-          ease: "Quad.Out",
-        });
-      }
+      // snap back to the tray slot
+      this.tweens.add({
+        targets: obj,
+        x: piece.home.x,
+        y: piece.home.y,
+        scale: TRAY_SCALE,
+        duration: 150,
+        ease: "Quad.Out",
+      });
     }
   }
 
