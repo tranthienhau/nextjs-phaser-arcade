@@ -2,32 +2,38 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as Phaser from "phaser";
-import { Match3Scene } from "@/game/match3/scene";
 import { BOARD_SIZE, BG_COLOR } from "@/game/match3/config";
 import { createRewardsApi } from "@/lib/rewards";
-import { clearState } from "@/lib/storage";
+import { Stat, GameCallbacks } from "@/lib/game";
+import { clear as clearSave } from "@/lib/storage";
 
-export default function PhaserGame() {
+type ResettableScene = Phaser.Scene & { resetGame: () => void };
+
+export default function PhaserHost({
+  sceneKey,
+  createScene,
+  saveKey,
+}: {
+  sceneKey: string;
+  createScene: () => ResettableScene;
+  saveKey: string;
+}) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
-  const sceneRef = useRef<Match3Scene | null>(null);
-  const [score, setScore] = useState(0);
-  const [moves, setMoves] = useState(0);
+  const sceneRef = useRef<ResettableScene | null>(null);
+  const [stats, setStats] = useState<Stat[]>([]);
   const [toast, setToast] = useState("");
 
   useEffect(() => {
     if (!hostRef.current || gameRef.current) return;
 
-    const rewards = createRewardsApi({
-      // scoreEndpoint: "/api/score",      // wire to real rewards endpoint
-      // milestoneEndpoint: "/api/milestone",
-      onToast: (m) => {
-        setToast(m);
-        window.setTimeout(() => setToast(""), 1800);
-      },
-    });
+    const showToast = (m: string) => {
+      setToast(m);
+      window.setTimeout(() => setToast(""), 1800);
+    };
+    const rewards = createRewardsApi({ onToast: showToast });
 
-    const scene = new Match3Scene();
+    const scene = createScene();
     sceneRef.current = scene;
 
     const game = new Phaser.Game({
@@ -36,34 +42,30 @@ export default function PhaserGame() {
       width: BOARD_SIZE,
       height: BOARD_SIZE,
       backgroundColor: BG_COLOR,
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-      },
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       scene,
     });
     gameRef.current = game;
 
-    game.scene.start("match3", {
-      onScore: (s: number) => {
-        setScore(s);
-        rewards.onScore(s);
-      },
+    const cb: GameCallbacks = {
+      onStats: setStats,
+      onScore: rewards.onScore,
       onMilestone: rewards.onMilestone,
-      onMoves: setMoves,
-    });
+      onToast: showToast,
+    };
+    game.scene.start(sceneKey, cb);
 
-    // Clean teardown: destroy the Phaser instance and release the canvas.
     return () => {
       game.destroy(true);
       gameRef.current = null;
       sceneRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleReset = () => sceneRef.current?.resetGame();
   const handleClearSave = () => {
-    clearState();
+    clearSave(saveKey);
     sceneRef.current?.resetGame();
     setToast("Saved game cleared");
     window.setTimeout(() => setToast(""), 1500);
@@ -72,14 +74,12 @@ export default function PhaserGame() {
   return (
     <>
       <div className="hud">
-        <div className="card">
-          <div className="label">Score</div>
-          <div className="value">{score}</div>
-        </div>
-        <div className="card">
-          <div className="label">Moves</div>
-          <div className="value">{moves}</div>
-        </div>
+        {stats.map((s) => (
+          <div className="card" key={s.label}>
+            <div className="label">{s.label}</div>
+            <div className="value">{s.value}</div>
+          </div>
+        ))}
       </div>
 
       <div className="stage" ref={hostRef} />

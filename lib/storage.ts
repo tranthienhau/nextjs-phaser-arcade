@@ -1,40 +1,31 @@
-// Light save state with localStorage so players can resume.
-// SSR-safe: every access is guarded for `window`.
+// Generic, SSR-safe localStorage helpers. Each game persists under its own key
+// so players can resume any of them independently.
 
-const KEY = "phaser-arcade:match3:v1";
+const PREFIX = "phaser-arcade:";
 
-export type SaveState = {
-  grid: number[][];
-  score: number;
-  moves: number;
-};
-
-export function loadState(): SaveState | null {
+export function load<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SaveState;
-    if (!parsed || !Array.isArray(parsed.grid)) return null;
-    return parsed;
+    const raw = window.localStorage.getItem(PREFIX + key);
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-export function saveState(state: SaveState): void {
+export function save<T>(key: string, value: T): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(state));
+    window.localStorage.setItem(PREFIX + key, JSON.stringify(value));
   } catch {
     // storage full / private mode - non-fatal for a casual game
   }
 }
 
-export function clearState(): void {
+export function clear(key: string): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.removeItem(KEY);
+    window.localStorage.removeItem(PREFIX + key);
   } catch {
     // ignore
   }

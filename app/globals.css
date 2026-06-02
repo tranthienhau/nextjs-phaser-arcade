@@ -122,3 +122,255 @@ button.btn.secondary {
   font-size: 13px;
   text-align: center;
 }
+
+/* --- menu --- */
+.menu {
+  width: 100%;
+  max-width: 480px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.menu-card {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.menu-card:active {
+  transform: scale(0.97);
+  border-color: var(--accent);
+}
+
+.menu-emoji {
+  font-size: 30px;
+}
+.menu-title {
+  font-weight: 700;
+  font-size: 17px;
+}
+.menu-tag {
+  color: var(--muted);
+  font-size: 13px;
+}
+.menu-kind {
+  margin-top: 6px;
+  font-size: 11px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(93, 177, 255, 0.15);
+  color: var(--accent-2);
+}
+.menu-kind.phaser {
+  background: rgba(255, 93, 143, 0.15);
+  color: var(--accent);
+}
+
+.foot {
+  color: var(--muted);
+  font-size: 12px;
+  max-width: 480px;
+  text-align: center;
+}
+.foot code {
+  color: var(--text);
+}
+
+.back {
+  display: inline-block;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.back:active {
+  color: var(--accent);
+}
+
+/* non-canvas games share the stage box but lay out as flex */
+.panel-stage,
+.tubes-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  gap: 14px;
+  aspect-ratio: auto;
+  height: auto;
+  overflow: visible;
+}
+
+/* --- color sort --- */
+.tubes {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.tube {
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 0 16px 16px;
+  border-top: none;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.tube.selected {
+  transform: translateY(-12px);
+  border-color: var(--accent);
+}
+.ball {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+
+/* --- trivia --- */
+.quiz {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.timerbar {
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.timerbar span {
+  display: block;
+  height: 100%;
+  background: var(--accent-2);
+  transition: width 0.1s linear;
+}
+.qno {
+  color: var(--muted);
+  font-size: 12px;
+}
+.qtext {
+  font-size: 18px;
+  font-weight: 700;
+  min-height: 48px;
+}
+.opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.opt {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+.opt.correct {
+  background: #1f7a4d;
+  border-color: #2fd089;
+}
+.opt.wrong {
+  background: #7a2330;
+  border-color: #ff5d6c;
+}
+.finish {
+  text-align: center;
+}
+.finish .big {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* --- word --- */
+.wgrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wrow {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.wcell {
+  width: 44px;
+  height: 44px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+.wcell.filled {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.wcell.correct {
+  background: #1f7a4d;
+  border-color: #1f7a4d;
+}
+.wcell.present {
+  background: #b88a1f;
+  border-color: #b88a1f;
+}
+.wcell.absent {
+  background: #2c2740;
+  border-color: #2c2740;
+}
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.krow {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.key {
+  flex: 1;
+  max-width: 34px;
+  height: 44px;
+  border-radius: 6px;
+  border: none;
+  background: #3a3458;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.key.wide {
+  max-width: 56px;
+  font-size: 12px;
+}
+.key.correct {
+  background: #1f7a4d;
+}
+.key.present {
+  background: #b88a1f;
+}
+.key.absent {
+  background: #211d33;
+  color: var(--muted);
+}

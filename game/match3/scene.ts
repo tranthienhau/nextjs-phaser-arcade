@@ -21,13 +21,11 @@ import {
   POP_MS,
 } from "./config";
 import { MILESTONES } from "@/lib/rewards";
-import { loadState, saveState, SaveState } from "@/lib/storage";
+import { load, save } from "@/lib/storage";
+import { GameCallbacks } from "@/lib/game";
 
-export type SceneCallbacks = {
-  onScore: (score: number) => void;
-  onMilestone: (milestone: number, score: number) => void;
-  onMoves: (moves: number) => void;
-};
+const SAVE_KEY = "match3";
+type SaveState = { grid: Grid; score: number; moves: number };
 
 type Tile = Phaser.GameObjects.Container & { gemType?: number };
 
@@ -41,21 +39,28 @@ export class Match3Scene extends Phaser.Scene {
   private score = 0;
   private moves = 0;
   private firedMilestones = new Set<number>();
-  private cb!: SceneCallbacks;
+  private cb!: GameCallbacks;
   private dragStart: { x: number; y: number; r: number; c: number } | null = null;
 
   constructor() {
     super("match3");
   }
 
-  init(data: SceneCallbacks) {
+  init(data: GameCallbacks) {
     this.cb = data;
+  }
+
+  private emitStats() {
+    this.cb.onStats([
+      { label: "Score", value: this.score },
+      { label: "Moves", value: this.moves },
+    ]);
   }
 
   create() {
     this.drawBoardBackground();
 
-    const saved = loadState();
+    const saved = load<SaveState>(SAVE_KEY);
     if (saved) {
       this.grid = saved.grid;
       this.score = saved.score;
@@ -72,7 +77,7 @@ export class Match3Scene extends Phaser.Scene {
     }
 
     this.cb.onScore(this.score);
-    this.cb.onMoves(this.moves);
+    this.emitStats();
     this.recordSeenMilestones();
 
     this.input.on("pointerdown", this.onPointerDown, this);
@@ -230,7 +235,7 @@ export class Match3Scene extends Phaser.Scene {
     }
 
     this.moves += 1;
-    this.cb.onMoves(this.moves);
+    this.emitStats();
     await this.resolveCascades();
     this.persist();
     this.busy = false;
@@ -364,6 +369,7 @@ export class Match3Scene extends Phaser.Scene {
     if (points <= 0) return;
     this.score += points;
     this.cb.onScore(this.score);
+    this.emitStats();
     for (const m of MILESTONES) {
       if (this.score >= m && !this.firedMilestones.has(m)) {
         this.firedMilestones.add(m);
@@ -384,7 +390,7 @@ export class Match3Scene extends Phaser.Scene {
       score: this.score,
       moves: this.moves,
     };
-    saveState(state);
+    save(SAVE_KEY, state);
   }
 
   resetGame() {
@@ -400,7 +406,7 @@ export class Match3Scene extends Phaser.Scene {
       }
     }
     this.cb.onScore(0);
-    this.cb.onMoves(0);
+    this.emitStats();
     this.persist();
   }
 }
